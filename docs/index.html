@@ -305,6 +305,7 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   DATA=d;
   GLOBAL_YR = Math.max(...d.companies.map(c=>latestYr(c)||0).filter(Boolean));
   document.getElementById('finHead').textContent = `재무상태 (${GLOBAL_YR} 결산, 억 원)`;
+  document.querySelector('.dl').setAttribute('download', `코스닥_시총300억미만_${d.base_date.slice(2)}.xlsx`);
   document.getElementById('meta').textContent =
     `기준일 ${d.base_date.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3')} · ${d.updated_kst} KST 업데이트 · 시총 ${d.mcap_limit}억 미만${d.has_dart?'':' · (재무 데이터 없음 — DART 키 미설정)'}`;
   render();
