@@ -225,10 +225,11 @@ def main():
         base_ymd, rows = universe_naver()
     log(f"코스닥 {len(rows)}종목 수집")
 
-    # 보통주만(종목코드 끝자리 0) — 우선주 제외, SPAC 제외
+    # 보통주만(종목코드 끝자리 0) — 우선주 제외, SPAC('기업인수목적'/'스팩') 제외
     under = [r for r in rows if 0 < r["mcap"] < MCAP_LIMIT
              and r["code"].endswith("0")
-             and "기업인수목적" not in r["name"]]
+             and "기업인수목적" not in r["name"]
+             and "스팩" not in r["name"]]
     under.sort(key=lambda r: r["mcap"])
     log(f"시총 {MCAP_LIMIT}억 미만 (SPAC 제외): {len(under)}종목")
 
