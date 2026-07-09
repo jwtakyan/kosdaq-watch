@@ -82,7 +82,8 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
 .ai-meta{font-size:12.5px;color:var(--muted);font-weight:400;margin-left:4px}
 .ai-note{font-size:13px;color:var(--muted)}
 .ai-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:14px}
-.ai-card{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:13px 15px}
+.ai-card{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:13px 15px;
+  display:flex;flex-direction:column}
 .ai-card .nm{font-weight:700;font-size:14.5px}
 .ai-card .nm a{color:var(--text);text-decoration:none}
 .ai-card .nm a:hover{color:var(--accent)}
@@ -91,9 +92,11 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
 .ai-angle.buy{background:var(--ok-bg);color:var(--ok-tx)}
 .ai-angle.acq{background:#e8edff;color:#3b5bdb}
 @media (prefers-color-scheme: dark){ .ai-angle.acq{background:#1e2a4a;color:#8aa4ff} }
-.ai-card .th{font-size:13px;line-height:1.65;margin:8px 0 6px}
-.ai-card .km{font-size:12px;color:var(--muted)}
-.ai-card .rk{font-size:12px;color:var(--neg);margin-top:4px}
+.ai-card ul.th{font-size:13px;line-height:1.6;margin:9px 0 12px;padding-left:17px}
+.ai-card ul.th li{margin-bottom:4px}
+.ai-card .km{font-size:12px;color:var(--muted);margin-top:auto;padding-top:8px;
+  border-top:1px dashed var(--border)}
+.ai-card .rk{font-size:12px;color:var(--neg);margin-top:5px}
 .ai-hist{margin-bottom:18px;font-size:13px}
 .ai-hist summary{cursor:pointer;color:var(--muted);user-select:none}
 .ai-hist .h-run{margin:10px 0 4px;font-weight:600}
@@ -112,8 +115,9 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
   .ai-grid{grid-template-columns:1fr}
   .ai-head{flex-direction:column;gap:4px}
   th,td{padding:8px 8px;font-size:12.5px}
-  td.name{min-width:160px;max-width:190px}
-  .biz{max-width:180px;font-size:11px}
+  td.name{min-width:120px;max-width:150px}
+  td.name .biz{display:none}  /* 모바일: 고정열 폭 확보를 위해 사업내용 숨김 */
+  td .code{display:block;margin-left:0}
   td.sector{max-width:90px}
   td.risk{min-width:140px;max-width:180px}
   .badge{font-size:10.5px;padding:2px 7px}
@@ -310,9 +314,8 @@ fetch('recommendations.json?'+Date.now()).then(r=>{ if(!r.ok) throw 0; return r.
   document.getElementById('aiNote').textContent = last.market_note || '';
   document.getElementById('aiGrid').innerHTML = last.picks.map(p=>`
     <div class="ai-card">
-      <span class="ai-angle ${p.angle==='인수'?'acq':'buy'}">${p.angle}</span>
-      <div class="nm"><a href="https://finance.naver.com/item/main.naver?code=${p.code}" target="_blank" rel="noopener">${p.name}</a><span class="cd">${p.code}</span></div>
-      <div class="th">${p.thesis}</div>
+      <div class="nm"><a href="https://finance.naver.com/item/main.naver?code=${p.code}" target="_blank" rel="noopener">${p.name}</a><span class="cd">${p.code}</span><span class="ai-angle ${p.angle==='인수'?'acq':'buy'}">${p.angle}</span></div>
+      <ul class="th">${(Array.isArray(p.thesis)?p.thesis:[p.thesis]).map(t=>`<li>${t}</li>`).join('')}</ul>
       <div class="km">📊 ${p.key_metrics}</div>
       <div class="rk">⚠ ${p.risks}</div>
     </div>`).join('');
@@ -320,7 +323,7 @@ fetch('recommendations.json?'+Date.now()).then(r=>{ if(!r.ok) throw 0; return r.
     document.getElementById('aiHist').style.display='';
     document.getElementById('aiHistBody').innerHTML = hist.slice(0,-1).reverse().map(run=>`
       <div class="h-run">${run.date}</div>
-      ${run.picks.map(p=>`<div class="h-pick">[${p.angle}] <b>${p.name}</b>(${p.code}) — ${p.thesis}</div>`).join('')}`).join('');
+      ${run.picks.map(p=>`<div class="h-pick">[${p.angle}] <b>${p.name}</b>(${p.code}) — ${Array.isArray(p.thesis)?p.thesis.join(' · '):p.thesis}</div>`).join('')}`).join('');
   }
 }).catch(()=>{});
 </script>

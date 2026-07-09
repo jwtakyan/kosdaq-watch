@@ -36,8 +36,10 @@ OUTPUT_SCHEMA = {
                     "name": {"type": "string"},
                     "angle": {"type": "string", "enum": ["지분투자", "인수"]},
                     "thesis": {
-                        "type": "string",
-                        "description": "선정 근거 2~3문장 (사업·재무·밸류에이션 관점)",
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "선정 근거 불렛 2~4개. 각각 음슴체 한 문장 "
+                        "(예: 'PBR 0.2배로 자산가치 대비 극단적 저평가 상태임')",
                     },
                     "key_metrics": {
                         "type": "string",
@@ -70,7 +72,10 @@ SYSTEM = """당신은 한국 중소형주를 전문으로 하는 PE(사모펀드
 - '인수'는 시총이 작아 경영권 확보 비용이 낮고 자산·현금이 풍부한 경우,
   '지분투자'는 사업 자체의 회복·성장 여력이 있는 경우로 구분
 
-정확히 5개를 선정하라. 직전 추천 이력이 주어지면 유지/제외 판단과 그 이유를 thesis에 반영하라."""
+정확히 5개를 선정하라. 직전 추천 이력이 주어지면 유지/제외 판단과 그 이유를 thesis에 반영하라.
+
+문체: market_note와 thesis·risks는 간결한 음슴체로 작성한다 (예: "~로 판단됨", "~여지가 있음", "~가 큼").
+thesis는 문장 나열이 아니라 항목별 불렛 형태로, 항목당 한 가지 논거만 담는다."""
 
 
 def build_universe_text(companies):
