@@ -318,7 +318,7 @@ fetch('recommendations.json?'+Date.now()).then(r=>{ if(!r.ok) throw 0; return r.
   if(!hist || !hist.length) return;
   const last = hist[hist.length-1];
   document.getElementById('ai').style.display='';
-  document.getElementById('aiMeta').textContent = `${last.date} · ${last.model}`;
+  document.getElementById('aiMeta').textContent = last.date;
   document.getElementById('aiNote').textContent = last.market_note || '';
   document.getElementById('aiGrid').innerHTML = last.picks.map(p=>`
     <div class="ai-card">
