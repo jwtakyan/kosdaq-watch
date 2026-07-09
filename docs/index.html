@@ -68,6 +68,7 @@ td .code{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
 .biz{color:var(--muted);font-weight:400;font-size:11.5px;margin-top:3px;max-width:340px;
   white-space:normal;line-height:1.5}
 td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.yr{font-size:10px;color:var(--muted);margin-left:3px;vertical-align:1px}
 .neg{color:var(--neg)}
 .badge{display:inline-block;padding:2.5px 8px;border-radius:20px;font-size:11.5px;font-weight:600;
   margin-right:4px}
@@ -83,7 +84,7 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
   <div class="sub" id="meta">데이터 로딩 중…</div>
 
   <div class="controls">
-    <input type="search" id="q" placeholder="기업명·업종·사업내용 검색">
+    <input type="search" id="q" placeholder="기업명 검색">
     <label><input type="checkbox" id="fDebt"> 부채비율 100% 이하만</label>
     <label><input type="checkbox" id="fRisk"> 상폐 리스크 종목만</label>
     <a class="dl" href="data.xlsx" download="코스닥_시총300억미만.xlsx">⬇ 엑셀 다운로드</a>
@@ -100,7 +101,7 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
           <th rowspan="2" class="num" data-k="close">주가(원) <span class="arr" id="a-close"></span></th>
           <th rowspan="2" class="num" data-k="mcap">시총(억) <span class="arr" id="a-mcap"></span></th>
           <th rowspan="2" class="num" data-k="debt">부채비율(%) <span class="arr" id="a-debt"></span></th>
-          <th colspan="3" class="grp-h grp">재무상태 (최근 결산, 억)</th>
+          <th colspan="3" class="grp-h grp" id="finHead">재무상태 (억)</th>
           <th colspan="3" class="grp-h grp">매출 (억)</th>
           <th colspan="3" class="grp-h grp">영업이익 (억)</th>
           <th rowspan="2" class="grp" data-k="risk">리스크 <span class="arr" id="a-risk"></span></th>
@@ -137,6 +138,8 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
 
 <script>
 const nv = v => (v===null||v===undefined||Number.isNaN(v)) ? -Infinity : v;
+const latestYr = c => { const ys=Object.keys(c.fin||{}); return ys.length? Math.max(...ys.map(Number)) : null; };
+let GLOBAL_YR = null;
 const fv = (c,y,k) => (c.fin && c.fin[y]) ? c.fin[y][k] : null;
 const fmtI = v => (v===null||v===undefined) ? '<span style="color:var(--muted)">–</span>'
   : (v<0 ? `<span class="neg">(${Math.round(Math.abs(v)).toLocaleString()})</span>`
@@ -192,8 +195,7 @@ function render(){
   const fD=document.getElementById('fDebt').checked;
   const fR=document.getElementById('fRisk').checked;
   let rows=DATA.companies.filter(c=>{
-    if(q && !(c.name.toLowerCase().includes(q)||c.code.includes(q)
-      ||(c.sector||'').toLowerCase().includes(q)||(c.biz||'').toLowerCase().includes(q))) return false;
+    if(q && !(c.name.toLowerCase().includes(q)||c.code.includes(q))) return false;
     if(fD && !(c.debt_ratio!==null && c.debt_ratio<=100)) return false;
     if(fR && riskScore(c)===0) return false;
     return true;
@@ -212,7 +214,7 @@ function render(){
     <td class="num">${c.close.toLocaleString()}</td>
     <td class="num"><b>${c.mcap.toLocaleString()}</b></td>
     <td class="num">${fmtI(c.debt_ratio)}</td>
-    <td class="num grp">${fmtI(c.assets)}</td>
+    <td class="num grp">${fmtI(c.assets)}${(latestYr(c)&&latestYr(c)!==GLOBAL_YR)?`<span class="yr">'${String(latestYr(c)).slice(2)}</span>`:''}</td>
     <td class="num">${fmtI(c.liab)}</td>
     <td class="num">${fmtI(c.equity)}</td>
     <td class="num grp">${fmtI(fv(c,'2023','rev'))}</td>
@@ -235,6 +237,8 @@ document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('c
 
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   DATA=d;
+  GLOBAL_YR = Math.max(...d.companies.map(c=>latestYr(c)||0).filter(Boolean));
+  document.getElementById('finHead').textContent = `재무상태 (${GLOBAL_YR} 결산, 억)`;
   document.getElementById('meta').textContent =
     `기준일 ${d.base_date.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3')} · ${d.updated_kst} KST 업데이트 · 시총 ${d.mcap_limit}억 미만${d.has_dart?'':' · (재무 데이터 없음 — DART 키 미설정)'}`;
   render();
