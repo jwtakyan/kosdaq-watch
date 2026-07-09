@@ -18,7 +18,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "docs", "data.json")
 REC_PATH = os.path.join(BASE_DIR, "docs", "recommendations.json")
 
-MODEL = "claude-opus-4-8"
+MODEL = "claude-sonnet-5"
 
 OUTPUT_SCHEMA = {
     "type": "object",
@@ -60,7 +60,10 @@ SYSTEM = """당신은 한국 중소형주를 전문으로 하는 PE(사모펀드
 
 선정 원칙:
 - 시총 대비 자본총계·영업이익·매출이 견실한 기업(저PBR, 흑자 또는 턴어라운드) 우선
-- 관리종목·거래정지·완전자본잠식 기업은 제외
+- 완전자본잠식 기업은 제외
+- 관리종목·거래정지 기업은 장내매수가 불가·제한되므로 '지분투자' 후보에서는 제외.
+  단, 자산·현금이 견실하고 대주주의 매각 유인이 큰 경우에는 구주매매·제3자배정
+  유상증자 관점의 '인수' 후보로 적극 검토 가능 (상폐 압박 = 협상력 우위)
 - 부채비율이 과도한 기업(200% 초과)은 명확한 근거 없이는 제외
 - 동전주 요건(주가 1,000원 미만 장기)에 걸린 기업은 액면가·유동성 리스크를 감안
 - 사업내용이 구조적으로 사양산업이면 자산가치(청산가치) 관점에서만 고려
