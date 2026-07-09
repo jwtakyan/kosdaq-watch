@@ -76,12 +76,46 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
 .b-dan{background:var(--dan-bg);color:var(--dan-tx)}
 .b-ok{background:var(--ok-bg);color:var(--ok-tx)}
 .note{margin-top:14px;color:var(--muted);font-size:12.5px;line-height:1.8}
+/* AI 추천 */
+.ai-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:10px}
+.ai-title{font-size:16px;font-weight:700}
+.ai-meta{font-size:12.5px;color:var(--muted);font-weight:400;margin-left:4px}
+.ai-note{font-size:13px;color:var(--muted)}
+.ai-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:14px}
+.ai-card{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:13px 15px}
+.ai-card .nm{font-weight:700;font-size:14.5px}
+.ai-card .nm a{color:var(--text);text-decoration:none}
+.ai-card .nm a:hover{color:var(--accent)}
+.ai-card .cd{color:var(--muted);font-weight:400;font-size:12px;margin-left:5px}
+.ai-angle{float:right;font-size:11.5px;font-weight:700;padding:2.5px 9px;border-radius:20px}
+.ai-angle.buy{background:var(--ok-bg);color:var(--ok-tx)}
+.ai-angle.acq{background:#e8edff;color:#3b5bdb}
+@media (prefers-color-scheme: dark){ .ai-angle.acq{background:#1e2a4a;color:#8aa4ff} }
+.ai-card .th{font-size:13px;line-height:1.65;margin:8px 0 6px}
+.ai-card .km{font-size:12px;color:var(--muted)}
+.ai-card .rk{font-size:12px;color:var(--neg);margin-top:4px}
+.ai-hist{margin-bottom:18px;font-size:13px}
+.ai-hist summary{cursor:pointer;color:var(--muted);user-select:none}
+.ai-hist .h-run{margin:10px 0 4px;font-weight:600}
+.ai-hist .h-pick{color:var(--muted);margin-left:12px;line-height:1.7}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>코스닥 시총 300억 미만 모니터</h1>
   <div class="sub" id="meta">데이터 로딩 중…</div>
+
+  <div id="ai" style="display:none">
+    <div class="ai-head">
+      <span class="ai-title">🤖 AI 주간 추천 <span class="ai-meta" id="aiMeta"></span></span>
+      <span class="ai-note" id="aiNote"></span>
+    </div>
+    <div class="ai-grid" id="aiGrid"></div>
+    <details class="ai-hist" id="aiHist" style="display:none">
+      <summary>지난 추천 이력</summary>
+      <div id="aiHistBody"></div>
+    </details>
+  </div>
 
   <div class="controls">
     <input type="search" id="q" placeholder="기업명 검색">
@@ -99,11 +133,11 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
           <th rowspan="2" class="stick" data-k="name">기업명 <span class="arr" id="a-name"></span></th>
           <th rowspan="2" data-k="sector">업종 <span class="arr" id="a-sector"></span></th>
           <th rowspan="2" class="num" data-k="close">주가(원) <span class="arr" id="a-close"></span></th>
-          <th rowspan="2" class="num" data-k="mcap">시총(억) <span class="arr" id="a-mcap"></span></th>
+          <th rowspan="2" class="num" data-k="mcap">시총(억 원) <span class="arr" id="a-mcap"></span></th>
           <th rowspan="2" class="num" data-k="debt">부채비율(%) <span class="arr" id="a-debt"></span></th>
-          <th colspan="3" class="grp-h grp" id="finHead">재무상태 (억)</th>
-          <th colspan="3" class="grp-h grp">매출 (억)</th>
-          <th colspan="3" class="grp-h grp">영업이익 (억)</th>
+          <th colspan="3" class="grp-h grp" id="finHead">재무상태 (억 원)</th>
+          <th colspan="3" class="grp-h grp">매출 (억 원)</th>
+          <th colspan="3" class="grp-h grp">영업이익 (억 원)</th>
           <th rowspan="2" class="grp" data-k="risk">리스크 <span class="arr" id="a-risk"></span></th>
         </tr>
         <tr class="sub">
@@ -238,13 +272,36 @@ document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('c
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   DATA=d;
   GLOBAL_YR = Math.max(...d.companies.map(c=>latestYr(c)||0).filter(Boolean));
-  document.getElementById('finHead').textContent = `재무상태 (${GLOBAL_YR} 결산, 억)`;
+  document.getElementById('finHead').textContent = `재무상태 (${GLOBAL_YR} 결산, 억 원)`;
   document.getElementById('meta').textContent =
     `기준일 ${d.base_date.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3')} · ${d.updated_kst} KST 업데이트 · 시총 ${d.mcap_limit}억 미만${d.has_dart?'':' · (재무 데이터 없음 — DART 키 미설정)'}`;
   render();
 }).catch(()=>{ document.getElementById('meta').textContent='data.json을 불러오지 못했습니다.'; });
 
 ['q','fDebt','fRisk'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+
+// AI 주간 추천 (recommendations.json 있을 때만 표시)
+fetch('recommendations.json?'+Date.now()).then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(hist=>{
+  if(!hist || !hist.length) return;
+  const last = hist[hist.length-1];
+  document.getElementById('ai').style.display='';
+  document.getElementById('aiMeta').textContent = `${last.date} · ${last.model}`;
+  document.getElementById('aiNote').textContent = last.market_note || '';
+  document.getElementById('aiGrid').innerHTML = last.picks.map(p=>`
+    <div class="ai-card">
+      <span class="ai-angle ${p.angle==='인수'?'acq':'buy'}">${p.angle}</span>
+      <div class="nm"><a href="https://finance.naver.com/item/main.naver?code=${p.code}" target="_blank" rel="noopener">${p.name}</a><span class="cd">${p.code}</span></div>
+      <div class="th">${p.thesis}</div>
+      <div class="km">📊 ${p.key_metrics}</div>
+      <div class="rk">⚠ ${p.risks}</div>
+    </div>`).join('');
+  if(hist.length>1){
+    document.getElementById('aiHist').style.display='';
+    document.getElementById('aiHistBody').innerHTML = hist.slice(0,-1).reverse().map(run=>`
+      <div class="h-run">${run.date}</div>
+      ${run.picks.map(p=>`<div class="h-pick">[${p.angle}] <b>${p.name}</b>(${p.code}) — ${p.thesis}</div>`).join('')}`).join('');
+  }
+}).catch(()=>{});
 </script>
 </body>
 </html>
