@@ -6,60 +6,71 @@
 <title>코스닥 시총 300억 미만 모니터</title>
 <style>
 :root{
-  --bg:#f7f8fa; --card:#ffffff; --text:#1a1d21; --muted:#6b7280;
-  --border:#e5e7eb; --head:#f0f2f5; --accent:#2563eb;
-  --neg:#dc2626; --pos:#111827; --warn-bg:#fef3c7; --warn-tx:#92400e;
-  --dan-bg:#fee2e2; --dan-tx:#991b1b; --ok-bg:#dcfce7; --ok-tx:#166534;
-  --row-hover:#f3f6fb;
+  --bg:#f7f8fa; --card:#ffffff; --zebra:#f6f8fb; --text:#1a1d21; --muted:#8a94a1;
+  --border:#e5e7eb; --head:#eef1f5; --accent:#2563eb;
+  --neg:#dc2626; --warn-bg:#fef3c7; --warn-tx:#92400e;
+  --dan-bg:#fee2e2; --dan-tx:#b91c1c; --ok-bg:#e7f6ec; --ok-tx:#15803d;
+  --hover:#eef4ff;
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#111418; --card:#1a1f26; --text:#e6e8eb; --muted:#9aa3ad;
-    --border:#2a313a; --head:#20262e; --accent:#60a5fa;
-    --neg:#f87171; --pos:#e6e8eb; --warn-bg:#3c2f10; --warn-tx:#fbbf24;
+    --bg:#111418; --card:#1a1f26; --zebra:#1e242c; --text:#e6e8eb; --muted:#8b95a1;
+    --border:#2a313a; --head:#232a33; --accent:#60a5fa;
+    --neg:#f87171; --warn-bg:#3c2f10; --warn-tx:#fbbf24;
     --dan-bg:#3f1d1d; --dan-tx:#f87171; --ok-bg:#14321f; --ok-tx:#4ade80;
-    --row-hover:#20262e;
+    --hover:#243144;
   }
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);
-  font:14px/1.5 "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
-.wrap{max-width:1280px;margin:0 auto;padding:24px 16px 64px}
-h1{font-size:20px;margin:0 0 4px}
-.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  font:14px/1.55 "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+.wrap{max-width:1560px;margin:0 auto;padding:26px 18px 64px}
+h1{font-size:21px;margin:0 0 4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-.controls input[type=search]{padding:7px 10px;border:1px solid var(--border);border-radius:8px;
-  background:var(--card);color:var(--text);min-width:200px}
-.controls label{display:flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;user-select:none}
-.count{margin-left:auto;color:var(--muted);font-size:13px}
-.dl{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border:1px solid var(--border);
+.controls input[type=search]{padding:8px 12px;border:1px solid var(--border);border-radius:8px;
+  background:var(--card);color:var(--text);min-width:230px;font-size:13.5px}
+.controls label{display:flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;
+  user-select:none;font-size:13.5px}
+.dl{display:inline-flex;align-items:center;gap:4px;padding:8px 13px;border:1px solid var(--border);
   border-radius:8px;background:var(--card);color:var(--accent);font-weight:600;font-size:13px;
   text-decoration:none}
 .dl:hover{border-color:var(--accent)}
+.count{margin-left:auto;color:var(--muted);font-size:13px}
 .tablebox{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
-table{border-collapse:collapse;width:100%;min-width:1500px;font-variant-numeric:tabular-nums}
-td.name{max-width:360px}
-.biz{color:var(--muted);font-weight:400;font-size:11.5px;max-width:350px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-td.sector{font-size:12.5px;color:var(--muted);max-width:130px;
-  overflow:hidden;text-overflow:ellipsis}
-th,td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
-th{background:var(--head);font-weight:600;font-size:12.5px;color:var(--muted);
-  position:sticky;top:0;cursor:pointer;user-select:none}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1380px;
+  font-variant-numeric:tabular-nums}
+td.risk{white-space:normal;min-width:170px;max-width:230px;line-height:1.9}
+th,td{padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:13.5px}
+thead th{background:var(--head);font-weight:600;font-size:12.5px;color:var(--muted);
+  cursor:pointer;user-select:none;position:sticky;z-index:2}
+thead tr:first-child th{top:0}
+thead tr.sub th{top:0}
+th.grp-h{text-align:center;color:var(--text);border-left:1px solid var(--border);cursor:default}
 th .arr{font-size:10px;color:var(--accent)}
 td.num,th.num{text-align:right}
-td.name{font-weight:600}
+th.grp,td.grp{border-left:1px solid var(--border)}
+tbody tr:nth-child(even) td{background:var(--zebra)}
+tbody tr td{background:var(--card)}
+tbody tr:hover td{background:var(--hover)}
+/* 기업명 고정 */
+th.stick,td.stick{position:sticky;left:0;z-index:1}
+thead th.stick{z-index:3}
+td.stick{box-shadow:4px 0 6px -4px rgba(0,0,0,.15)}
+td.name{font-weight:600;max-width:300px}
 td.name a{color:var(--text);text-decoration:none}
 td.name a:hover{color:var(--accent);text-decoration:underline}
 td .code{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
-tr:hover td{background:var(--row-hover)}
+.biz{color:var(--muted);font-weight:400;font-size:11.5px;margin-top:2px;max-width:320px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .neg{color:var(--neg)}
-.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11.5px;font-weight:600;margin-right:4px}
+.badge{display:inline-block;padding:2.5px 8px;border-radius:20px;font-size:11.5px;font-weight:600;
+  margin-right:4px}
 .b-warn{background:var(--warn-bg);color:var(--warn-tx)}
 .b-dan{background:var(--dan-bg);color:var(--dan-tx)}
 .b-ok{background:var(--ok-bg);color:var(--ok-tx)}
-.note{margin-top:14px;color:var(--muted);font-size:12.5px;line-height:1.7}
-.grp{border-left:2px solid var(--border)}
+.note{margin-top:14px;color:var(--muted);font-size:12.5px;line-height:1.8}
 </style>
 </head>
 <body>
@@ -77,48 +88,73 @@ tr:hover td{background:var(--row-hover)}
 
   <div class="tablebox">
     <table id="tbl">
-      <thead><tr id="hdr"></tr></thead>
+      <thead>
+        <tr>
+          <th rowspan="2" class="num" data-k="idx" style="width:44px">번호</th>
+          <th rowspan="2" class="stick" data-k="name">기업명 <span class="arr" id="a-name"></span></th>
+          <th rowspan="2" data-k="sector">업종 <span class="arr" id="a-sector"></span></th>
+          <th rowspan="2" class="num" data-k="close">주가(원) <span class="arr" id="a-close"></span></th>
+          <th rowspan="2" class="num" data-k="mcap">시총(억) <span class="arr" id="a-mcap"></span></th>
+          <th rowspan="2" class="num" data-k="debt">부채비율(%) <span class="arr" id="a-debt"></span></th>
+          <th colspan="3" class="grp-h grp">재무상태 (최근 결산, 억)</th>
+          <th colspan="3" class="grp-h grp">매출 (억)</th>
+          <th colspan="3" class="grp-h grp">영업이익 (억)</th>
+          <th rowspan="2" class="grp" data-k="risk">리스크 <span class="arr" id="a-risk"></span></th>
+        </tr>
+        <tr class="sub">
+          <th class="num grp" data-k="ast">자산 <span class="arr" id="a-ast"></span></th>
+          <th class="num" data-k="lia">부채 <span class="arr" id="a-lia"></span></th>
+          <th class="num" data-k="eq">자본 <span class="arr" id="a-eq"></span></th>
+          <th class="num grp" data-k="r23">2023 <span class="arr" id="a-r23"></span></th>
+          <th class="num" data-k="r24">2024 <span class="arr" id="a-r24"></span></th>
+          <th class="num" data-k="r25">2025 <span class="arr" id="a-r25"></span></th>
+          <th class="num grp" data-k="o23">2023 <span class="arr" id="a-o23"></span></th>
+          <th class="num" data-k="o24">2024 <span class="arr" id="a-o24"></span></th>
+          <th class="num" data-k="o25">2025 <span class="arr" id="a-o25"></span></th>
+        </tr>
+      </thead>
       <tbody id="body"></tbody>
     </table>
   </div>
 
   <div class="note">
     <b>상장폐지 리스크 배지 기준</b> —
-    <span class="badge b-dan">관리종목</span> 거래소 지정(네이버 금융 기준) ·
+    <span class="badge b-dan">관리종목</span> 거래소 지정 ·
     <span class="badge b-dan">거래정지</span> 매매거래 정지 중 ·
-    <span class="badge b-dan">동전주</span> 종가 1,000원 미만 30거래일 연속(관리종목 요건 충족) ·
+    <span class="badge b-dan">동전주</span> 종가 1,000원 미만 30거래일 연속 ·
     <span class="badge b-warn">동전주 근접</span> 15거래일 이상 연속 ·
     <span class="badge b-dan">시총 200억↓</span> 현행 관리종목 기준(200억) 미달 지속 ·
     <span class="badge b-dan">자본잠식</span> 최근 사업보고서 자본총계 ≤ 0<br>
-    시가총액·주가: KRX(pykrx), 재무: 금융감독원 OpenDART 사업보고서(연결 우선), 업종·사업내용·관리종목: 네이버 금융.
-    자산·부채·자본은 최근 결산 기준, 금액 단위: 억 원.
-    SPAC(기업인수목적회사) 제외. 본 자료는 투자 판단의 참고용이며 정확성을 보증하지 않습니다.
+    시가총액·주가: KRX(pykrx) · 재무: 금융감독원 OpenDART 사업보고서(연결 우선) ·
+    업종·사업내용·관리종목: 네이버 금융 · 금액 단위: 억 원 · SPAC 제외 ·
+    본 자료는 투자 판단의 참고용이며 정확성을 보증하지 않습니다.
   </div>
 </div>
 
 <script>
-const COLS = [
-  {k:'idx',   t:'번호',        num:true,  sort:null},
-  {k:'name',  t:'기업명',      num:false, sort:(a,b)=>a.name.localeCompare(b.name,'ko')},
-  {k:'sector',t:'업종',        num:false, sort:(a,b)=>(a.sector||'').localeCompare(b.sector||'','ko')},
-  {k:'close', t:'주가(원)',    num:true,  sort:(a,b)=>a.close-b.close},
-  {k:'mcap',  t:'시총(억)',    num:true,  sort:(a,b)=>a.mcap-b.mcap},
-  {k:'debt',  t:'부채비율(%)', num:true,  sort:(a,b)=>nv(a.debt_ratio)-nv(b.debt_ratio)},
-  {k:'ast',   t:'자산',        num:true,  grp:true, sort:(a,b)=>nv(a.assets)-nv(b.assets)},
-  {k:'lia',   t:'부채',        num:true,  sort:(a,b)=>nv(a.liab)-nv(b.liab)},
-  {k:'eq',    t:'자본',        num:true,  sort:(a,b)=>nv(a.equity)-nv(b.equity)},
-  {k:'r23',   t:'매출 23',     num:true,  grp:true, sort:(a,b)=>nv(fv(a,'2023','rev'))-nv(fv(b,'2023','rev'))},
-  {k:'r24',   t:'매출 24',     num:true,  sort:(a,b)=>nv(fv(a,'2024','rev'))-nv(fv(b,'2024','rev'))},
-  {k:'r25',   t:'매출 25',     num:true,  sort:(a,b)=>nv(fv(a,'2025','rev'))-nv(fv(b,'2025','rev'))},
-  {k:'o23',   t:'영업이익 23', num:true,  grp:true, sort:(a,b)=>nv(fv(a,'2023','op'))-nv(fv(b,'2023','op'))},
-  {k:'o24',   t:'영업이익 24', num:true,  sort:(a,b)=>nv(fv(a,'2024','op'))-nv(fv(b,'2024','op'))},
-  {k:'o25',   t:'영업이익 25', num:true,  sort:(a,b)=>nv(fv(a,'2025','op'))-nv(fv(b,'2025','op'))},
-  {k:'risk',  t:'리스크',      num:false, grp:true, sort:(a,b)=>riskScore(b)-riskScore(a)},
-];
 const nv = v => (v===null||v===undefined||Number.isNaN(v)) ? -Infinity : v;
 const fv = (c,y,k) => (c.fin && c.fin[y]) ? c.fin[y][k] : null;
-const fmt = v => (v===null||v===undefined) ? '<span style="color:var(--muted)">–</span>'
-  : (v<0 ? `<span class="neg">(${Math.abs(v).toLocaleString()})</span>` : v.toLocaleString());
+const fmtI = v => (v===null||v===undefined) ? '<span style="color:var(--muted)">–</span>'
+  : (v<0 ? `<span class="neg">(${Math.round(Math.abs(v)).toLocaleString()})</span>`
+         : Math.round(v).toLocaleString());
+
+const SORTS = {
+  name:(a,b)=>a.name.localeCompare(b.name,'ko'),
+  sector:(a,b)=>(a.sector||'').localeCompare(b.sector||'','ko'),
+  close:(a,b)=>a.close-b.close,
+  mcap:(a,b)=>a.mcap-b.mcap,
+  debt:(a,b)=>nv(a.debt_ratio)-nv(b.debt_ratio),
+  ast:(a,b)=>nv(a.assets)-nv(b.assets),
+  lia:(a,b)=>nv(a.liab)-nv(b.liab),
+  eq:(a,b)=>nv(a.equity)-nv(b.equity),
+  r23:(a,b)=>nv(fv(a,'2023','rev'))-nv(fv(b,'2023','rev')),
+  r24:(a,b)=>nv(fv(a,'2024','rev'))-nv(fv(b,'2024','rev')),
+  r25:(a,b)=>nv(fv(a,'2025','rev'))-nv(fv(b,'2025','rev')),
+  o23:(a,b)=>nv(fv(a,'2023','op'))-nv(fv(b,'2023','op')),
+  o24:(a,b)=>nv(fv(a,'2024','op'))-nv(fv(b,'2024','op')),
+  o25:(a,b)=>nv(fv(a,'2025','op'))-nv(fv(b,'2025','op')),
+  risk:(a,b)=>riskScore(a)-riskScore(b),
+};
 
 function riskScore(c){
   let s=0;
@@ -134,9 +170,9 @@ function badges(c){
   if(c.is_management) b.push(`<span class="badge b-dan">관리종목</span>`);
   if(c.trade_stop) b.push(`<span class="badge b-dan">거래정지</span>`);
   if(c.penny_streak>=30) b.push(`<span class="badge b-dan">동전주 ${c.penny_streak}일</span>`);
-  else if(c.penny_streak>=15) b.push(`<span class="badge b-warn">동전주 근접 ${c.penny_streak}일</span>`);
+  else if(c.penny_streak>=15) b.push(`<span class="badge b-warn">동전주 근접</span>`);
   if(c.equity_impaired) b.push(`<span class="badge b-dan">자본잠식</span>`);
-  if(c.under200_streak>=20) b.push(`<span class="badge b-dan">시총 200억↓ ${c.under200_streak}일</span>`);
+  if(c.under200_streak>=20) b.push(`<span class="badge b-dan">시총 200억↓</span>`);
   return b.length? b.join('') : '<span class="badge b-ok">양호</span>';
 }
 
@@ -149,44 +185,44 @@ function render(){
   const fR=document.getElementById('fRisk').checked;
   let rows=DATA.companies.filter(c=>{
     if(q && !(c.name.toLowerCase().includes(q)||c.code.includes(q)
-              ||(c.sector||'').toLowerCase().includes(q)||(c.biz||'').toLowerCase().includes(q))) return false;
+      ||(c.sector||'').toLowerCase().includes(q)||(c.biz||'').toLowerCase().includes(q))) return false;
     if(fD && !(c.debt_ratio!==null && c.debt_ratio<=100)) return false;
     if(fR && riskScore(c)===0) return false;
     return true;
   });
-  const col=COLS.find(c=>c.k===sortKey);
-  if(col && col.sort){ rows.sort(col.sort); if(!sortAsc) rows.reverse(); }
+  if(SORTS[sortKey]){ rows.sort(SORTS[sortKey]); if(!sortAsc) rows.reverse(); }
 
-  document.getElementById('hdr').innerHTML = COLS.map(c=>
-    `<th class="${c.num?'num':''} ${c.grp?'grp':''}" data-k="${c.k}">${c.t}${
-      c.k===sortKey?` <span class="arr">${sortAsc?'▲':'▼'}</span>`:''}</th>`).join('');
-  document.querySelectorAll('#hdr th').forEach(th=>th.onclick=()=>{
-    const k=th.dataset.k, c=COLS.find(x=>x.k===k);
-    if(!c.sort) return;
-    if(sortKey===k) sortAsc=!sortAsc; else {sortKey=k; sortAsc=true;}
-    render();
-  });
+  document.querySelectorAll('thead .arr').forEach(el=>el.textContent='');
+  const arrEl=document.getElementById('a-'+sortKey);
+  if(arrEl) arrEl.textContent = sortAsc?'▲':'▼';
 
   document.getElementById('body').innerHTML = rows.map((c,i)=>`<tr>
     <td class="num" style="color:var(--muted)">${i+1}</td>
-    <td class="name"><a href="https://finance.naver.com/item/main.naver?code=${c.code}" target="_blank" rel="noopener">${c.name}</a><span class="code">${c.code}</span>${c.biz?`<div class="biz" title="${(c.biz||'').replace(/"/g,'&quot;')}">${c.biz}</div>`:''}</td>
-    <td class="sector">${c.sector||'<span style="color:var(--muted)">–</span>'}</td>
+    <td class="name stick"><a href="https://finance.naver.com/item/main.naver?code=${c.code}" target="_blank" rel="noopener">${c.name}</a><span class="code">${c.code}</span>${c.biz?`<div class="biz" title="${(c.biz||'').replace(/"/g,'&quot;')}">${c.biz}</div>`:''}</td>
+    <td class="sector" title="${c.sector||''}">${c.sector||'–'}</td>
     <td class="num">${c.close.toLocaleString()}</td>
-    <td class="num">${c.mcap.toLocaleString()}</td>
-    <td class="num">${fmt(c.debt_ratio)}</td>
-    <td class="num grp">${fmt(c.assets)}</td>
-    <td class="num">${fmt(c.liab)}</td>
-    <td class="num">${fmt(c.equity)}</td>
-    <td class="num grp">${fmt(fv(c,'2023','rev'))}</td>
-    <td class="num">${fmt(fv(c,'2024','rev'))}</td>
-    <td class="num">${fmt(fv(c,'2025','rev'))}</td>
-    <td class="num grp">${fmt(fv(c,'2023','op'))}</td>
-    <td class="num">${fmt(fv(c,'2024','op'))}</td>
-    <td class="num">${fmt(fv(c,'2025','op'))}</td>
-    <td class="grp">${badges(c)}</td>
+    <td class="num"><b>${c.mcap.toLocaleString()}</b></td>
+    <td class="num">${fmtI(c.debt_ratio)}</td>
+    <td class="num grp">${fmtI(c.assets)}</td>
+    <td class="num">${fmtI(c.liab)}</td>
+    <td class="num">${fmtI(c.equity)}</td>
+    <td class="num grp">${fmtI(fv(c,'2023','rev'))}</td>
+    <td class="num">${fmtI(fv(c,'2024','rev'))}</td>
+    <td class="num">${fmtI(fv(c,'2025','rev'))}</td>
+    <td class="num grp">${fmtI(fv(c,'2023','op'))}</td>
+    <td class="num">${fmtI(fv(c,'2024','op'))}</td>
+    <td class="num">${fmtI(fv(c,'2025','op'))}</td>
+    <td class="grp risk">${badges(c)}</td>
   </tr>`).join('');
   document.getElementById('count').textContent=`${rows.length} / ${DATA.companies.length}종목`;
 }
+
+document.querySelectorAll('thead th[data-k]').forEach(th=>th.addEventListener('click',()=>{
+  const k=th.dataset.k;
+  if(!SORTS[k]) return;
+  if(sortKey===k) sortAsc=!sortAsc; else {sortKey=k; sortAsc=(k==='name'||k==='sector');}
+  render();
+}));
 
 fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   DATA=d;
