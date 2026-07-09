@@ -40,7 +40,7 @@ h1{font-size:21px;margin:0 0 4px}
 .tablebox{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:1380px;
   font-variant-numeric:tabular-nums}
-td.risk{white-space:normal;min-width:170px;max-width:230px;line-height:1.9}
+td.risk{white-space:normal;min-width:170px;max-width:230px;line-height:1.5}
 th,td{padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:13.5px}
 thead th{background:var(--head);font-weight:600;font-size:12.5px;color:var(--muted);
   cursor:pointer;user-select:none;position:sticky;z-index:2}
@@ -71,7 +71,7 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
 .yr{font-size:10px;color:var(--muted);margin-left:3px;vertical-align:1px}
 .neg{color:var(--neg)}
 .badge{display:inline-block;padding:2.5px 8px;border-radius:20px;font-size:11.5px;font-weight:600;
-  margin-right:4px}
+  margin:2px 5px 2px 0;line-height:1.4}
 .b-warn{background:var(--warn-bg);color:var(--warn-tx)}
 .b-dan{background:var(--dan-bg);color:var(--dan-tx)}
 .b-ok{background:var(--ok-bg);color:var(--ok-tx)}
@@ -98,6 +98,27 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
 .ai-hist summary{cursor:pointer;color:var(--muted);user-select:none}
 .ai-hist .h-run{margin:10px 0 4px;font-weight:600}
 .ai-hist .h-pick{color:var(--muted);margin-left:12px;line-height:1.7}
+
+/* 모바일 */
+@media (max-width: 640px){
+  .wrap{padding:16px 10px 48px}
+  h1{font-size:18px}
+  .sub{font-size:12px}
+  .controls{gap:8px}
+  .controls input[type=search]{min-width:0;flex:1 1 100%}
+  .controls label{font-size:12.5px}
+  .dl{padding:7px 11px;font-size:12.5px}
+  .count{flex-basis:100%;margin-left:0;text-align:right}
+  .ai-grid{grid-template-columns:1fr}
+  .ai-head{flex-direction:column;gap:4px}
+  th,td{padding:8px 8px;font-size:12.5px}
+  td.name{min-width:160px;max-width:190px}
+  .biz{max-width:180px;font-size:11px}
+  td.sector{max-width:90px}
+  td.risk{min-width:140px;max-width:180px}
+  .badge{font-size:10.5px;padding:2px 7px}
+  td.stick{box-shadow:5px 0 8px -4px rgba(0,0,0,.25)}
+}
 </style>
 </head>
 <body>
