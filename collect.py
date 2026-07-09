@@ -42,6 +42,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_PATH = os.path.join(BASE_DIR, "dart_cache.json")
 OUT_PATH = os.path.join(BASE_DIR, "docs", "data.json")
 XLSX_PATH = os.path.join(BASE_DIR, "docs", "data.xlsx")
+PROFILE_PATH = os.path.join(BASE_DIR, "profile_cache.json")
 
 EOK = 100_000_000  # 1억
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
@@ -159,6 +160,40 @@ def history_naver(code, cur_close, cur_mcap):
     return closes, mcaps, last_ymd
 
 
+# ---------------------------------------------------------------- 기업 프로필 (네이버)
+
+def naver_profile(code):
+    """업종명 + 사업내용 한 줄 (finance.naver 기업개요, FnGuide 제공)."""
+    r = requests.get("https://finance.naver.com/item/main.naver",
+                     params={"code": code}, headers=UA, timeout=20)
+    r.encoding = "utf-8"
+    html = r.text
+    m = re.search(r"upjong[^>]*>([^<]+)</a>", html)
+    sector = m.group(1).strip() if m else None
+    biz = None
+    s = re.search(r'summary_info[^>]*>(.*?)</div>', html, re.S)
+    if s:
+        txt = " ".join(re.sub(r"<[^>]+>", " ", s.group(1)).split())
+        txt = txt.replace("기업개요", "", 1).strip()
+        sents = [x.strip() for x in re.split(r"(?<=[음됨임함])\.\s*", txt) if x.strip()]
+        # 설립·상장 연혁 문장은 건너뛰고 사업을 설명하는 문장 선택
+        biz = next((x for x in sents if not re.search(r"설립|상장", x)),
+                   sents[0] if sents else None)
+        if biz and len(biz) > 90:
+            biz = biz[:90] + "…"
+    return {"sector": sector, "biz": biz}
+
+
+def naver_flags(code):
+    """관리종목 지정·거래정지 여부 (매일 갱신)."""
+    r = requests.get(f"https://m.stock.naver.com/api/stock/{code}/basic",
+                     headers=UA, timeout=15)
+    r.raise_for_status()
+    d = r.json()
+    halted = ((d.get("tradeStopType") or {}).get("name") == "HALTED")
+    return bool(d.get("isManagement")), halted
+
+
 # ---------------------------------------------------------------- OpenDART
 
 def dart_corp_map():
@@ -236,10 +271,11 @@ def build_xlsx(out):
     ws.title = "시총300억미만"
 
     years = [str(y) for y in out["fin_years"]]
-    headers = (["번호", "기업명", "종목코드", "주가(원)", "시총(억)", "부채비율(%)"]
+    headers = (["번호", "기업명", "종목코드", "업종", "사업내용",
+                "주가(원)", "시총(억)", "부채비율(%)", "자산(억)", "부채(억)", "자본(억)"]
                + [f"매출 {y[2:]}" for y in years]
                + [f"영업이익 {y[2:]}" for y in years]
-               + ["동전주 연속(일)", "시총200억미달 연속(일)", "자본잠식"])
+               + ["동전주 연속(일)", "시총200억미달 연속(일)", "관리종목", "거래정지", "자본잠식"])
 
     head_fill = PatternFill("solid", fgColor="C6E0B4")
     thin = Side(style="thin", color="BFBFBF")
@@ -254,29 +290,35 @@ def build_xlsx(out):
         cell.border = border
 
     fin_fmt = "#,##0.0;[Red](#,##0.0)"
+    fin_first, fin_last = 12, 11 + 2 * len(years)  # 매출·영업이익 열 범위
     for r, comp in enumerate(out["companies"], 2):
         fin = comp.get("fin", {})
-        row = ([r - 1, comp["name"], comp["code"], comp["close"],
-                comp["mcap"], comp["debt_ratio"]]
+        row = ([r - 1, comp["name"], comp["code"],
+                comp.get("sector"), comp.get("biz"), comp["close"],
+                comp["mcap"], comp["debt_ratio"],
+                comp.get("assets"), comp.get("liab"), comp.get("equity")]
                + [fin.get(y, {}).get("rev") for y in years]
                + [fin.get(y, {}).get("op") for y in years]
                + [comp["penny_streak"] or None,
                   comp["under200_streak"] or None,
+                  "관리" if comp.get("is_management") else None,
+                  "정지" if comp.get("trade_stop") else None,
                   "잠식" if comp["equity_impaired"] else None])
         for c, v in enumerate(row, 1):
             cell = ws.cell(row=r, column=c, value=v)
             cell.border = border
             cell.font = Font(size=10)
-            if c == 4:
+            if c == 6:
                 cell.number_format = "#,##0"
-            elif c in (5, 6):
+            elif c in (7, 8):
                 cell.number_format = "#,##0.0"
-            elif 7 <= c <= 6 + 2 * len(years):
+            elif 9 <= c <= 11 or fin_first <= c <= fin_last:
                 cell.number_format = fin_fmt
-            if c in (1, 3) or c > 6 + 2 * len(years):
+            if c in (1, 3, 4) or c > fin_last:
                 cell.alignment = center
 
-    widths = [6, 18, 10, 10, 9, 11] + [10] * (2 * len(years)) + [13, 17, 9]
+    widths = ([6, 16, 9, 15, 60, 9, 8, 10, 9, 9, 9]
+              + [10] * (2 * len(years)) + [12, 16, 8, 8, 8])
     for i, w in enumerate(widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = w
     ws.freeze_panes = "A2"
@@ -315,6 +357,11 @@ def main():
         with open(CACHE_PATH, encoding="utf-8") as f:
             cache = json.load(f)
 
+    profiles = {}
+    if os.path.exists(PROFILE_PATH):
+        with open(PROFILE_PATH, encoding="utf-8") as f:
+            profiles = json.load(f)
+
     corp_map = {}
     if DART_KEY:
         try:
@@ -344,9 +391,27 @@ def main():
         under300 = streak(mcaps, lambda m: 0 < m < MCAP_LIMIT)
         under200 = streak(mcaps, lambda m: 0 < m < MCAP_RULE_NOW)
 
+        # 업종·사업내용은 캐시(변동 거의 없음), 관리종목·거래정지는 매일 조회
+        prof = profiles.get(code)
+        if not prof or not prof.get("sector"):
+            try:
+                prof = naver_profile(code)
+                profiles[code] = prof
+            except Exception as e:
+                log(f"[경고] {code} 프로필 실패: {e}")
+                prof = prof or {"sector": None, "biz": None}
+            time.sleep(0.1)
+        is_mgmt = halted = False
+        try:
+            is_mgmt, halted = naver_flags(code)
+        except Exception as e:
+            log(f"[경고] {code} 관리종목 플래그 실패: {e}")
+        time.sleep(0.08)
+
         fin = {}
         debt_ratio = None
         equity_impaired = None
+        assets = liab = equity = None
         corp_code = corp_map.get(code)
         if corp_code:
             for year in FIN_YEARS:
@@ -367,15 +432,20 @@ def main():
                     fin[str(year)] = fy
             latest = next((fin[str(y)] for y in sorted(FIN_YEARS, reverse=True)
                            if str(y) in fin), None)
-            if latest and latest.get("equity") is not None:
-                eq = latest["equity"]
-                equity_impaired = eq <= 0
-                if eq > 0 and latest.get("liab") is not None:
-                    debt_ratio = round(latest["liab"] / eq * 100, 1)
+            if latest:
+                assets = latest.get("assets")
+                liab = latest.get("liab")
+                equity = latest.get("equity")
+                if equity is not None:
+                    equity_impaired = equity <= 0
+                    if equity > 0 and liab is not None:
+                        debt_ratio = round(liab / equity * 100, 1)
 
         companies.append({
             "code": code,
             "name": r["name"],
+            "sector": prof.get("sector"),
+            "biz": prof.get("biz"),
             "close": r["close"],
             "mcap": round(r["mcap"], 1),
             "penny_streak": penny,
@@ -383,16 +453,25 @@ def main():
             "under200_streak": under200,
             "debt_ratio": debt_ratio,
             "equity_impaired": equity_impaired,
+            "assets": assets,
+            "liab": liab,
+            "equity": equity,
+            "is_management": is_mgmt,
+            "trade_stop": halted,
             "fin": fin,
         })
         if i % 25 == 0:
             log(f"  {i}/{len(under)} 처리")
-            # 중간 캐시 저장 — 중단돼도 DART 수집분은 보존
+            # 중간 캐시 저장 — 중단돼도 수집분은 보존
             with open(CACHE_PATH, "w", encoding="utf-8") as f:
                 json.dump(cache, f, ensure_ascii=False)
+            with open(PROFILE_PATH, "w", encoding="utf-8") as f:
+                json.dump(profiles, f, ensure_ascii=False)
 
     with open(CACHE_PATH, "w", encoding="utf-8") as f:
         json.dump(cache, f, ensure_ascii=False)
+    with open(PROFILE_PATH, "w", encoding="utf-8") as f:
+        json.dump(profiles, f, ensure_ascii=False)
 
     out = {
         "updated_kst": (dt.datetime.now(dt.timezone.utc)
