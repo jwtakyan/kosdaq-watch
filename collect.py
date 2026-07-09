@@ -179,8 +179,8 @@ def naver_profile(code):
         # 설립·상장 연혁 문장은 건너뛰고 사업을 설명하는 문장 선택
         biz = next((x for x in sents if not re.search(r"설립|상장", x)),
                    sents[0] if sents else None)
-        if biz and len(biz) > 90:
-            biz = biz[:90] + "…"
+        if biz and len(biz) > 150:
+            biz = biz[:150] + "…"
     return {"sector": sector, "biz": biz}
 
 
