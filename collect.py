@@ -41,6 +41,7 @@ TICKER_LIMIT = int(os.environ.get("TICKER_LIMIT", "0") or 0)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_PATH = os.path.join(BASE_DIR, "dart_cache.json")
 OUT_PATH = os.path.join(BASE_DIR, "docs", "data.json")
+XLSX_PATH = os.path.join(BASE_DIR, "docs", "data.xlsx")
 
 EOK = 100_000_000  # 1억
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
@@ -222,6 +223,69 @@ def dart_fin_year(corp_code, year):
     return None
 
 
+# ---------------------------------------------------------------- 엑셀
+
+def build_xlsx(out):
+    """docs/data.xlsx 생성 — 웹의 '엑셀 다운로드' 버튼용."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "시총300억미만"
+
+    years = [str(y) for y in out["fin_years"]]
+    headers = (["번호", "기업명", "종목코드", "주가(원)", "시총(억)", "부채비율(%)"]
+               + [f"매출 {y[2:]}" for y in years]
+               + [f"영업이익 {y[2:]}" for y in years]
+               + ["동전주 연속(일)", "시총200억미달 연속(일)", "자본잠식"])
+
+    head_fill = PatternFill("solid", fgColor="C6E0B4")
+    thin = Side(style="thin", color="BFBFBF")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center = Alignment(horizontal="center", vertical="center")
+
+    for c, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=c, value=h)
+        cell.font = Font(bold=True, size=10)
+        cell.fill = head_fill
+        cell.alignment = center
+        cell.border = border
+
+    fin_fmt = "#,##0.0;[Red](#,##0.0)"
+    for r, comp in enumerate(out["companies"], 2):
+        fin = comp.get("fin", {})
+        row = ([r - 1, comp["name"], comp["code"], comp["close"],
+                comp["mcap"], comp["debt_ratio"]]
+               + [fin.get(y, {}).get("rev") for y in years]
+               + [fin.get(y, {}).get("op") for y in years]
+               + [comp["penny_streak"] or None,
+                  comp["under200_streak"] or None,
+                  "잠식" if comp["equity_impaired"] else None])
+        for c, v in enumerate(row, 1):
+            cell = ws.cell(row=r, column=c, value=v)
+            cell.border = border
+            cell.font = Font(size=10)
+            if c == 4:
+                cell.number_format = "#,##0"
+            elif c in (5, 6):
+                cell.number_format = "#,##0.0"
+            elif 7 <= c <= 6 + 2 * len(years):
+                cell.number_format = fin_fmt
+            if c in (1, 3) or c > 6 + 2 * len(years):
+                cell.alignment = center
+
+    widths = [6, 18, 10, 10, 9, 11] + [10] * (2 * len(years)) + [13, 17, 9]
+    for i, w in enumerate(widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{len(out['companies']) + 1}"
+
+    wb.save(XLSX_PATH)
+    log(f"엑셀 생성: {XLSX_PATH}")
+
+
 # ---------------------------------------------------------------- main
 
 def main():
@@ -343,8 +407,14 @@ def main():
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
+    build_xlsx(out)
     log(f"완료: {OUT_PATH} ({len(companies)}종목)")
 
 
 if __name__ == "__main__":
+    if "--xlsx-only" in sys.argv:
+        # 기존 data.json으로 엑셀만 재생성 (재수집 없이)
+        with open(OUT_PATH, encoding="utf-8") as f:
+            build_xlsx(json.load(f))
+        sys.exit(0)
     sys.exit(main())

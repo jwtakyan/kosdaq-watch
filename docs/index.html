@@ -32,6 +32,10 @@ h1{font-size:20px;margin:0 0 4px}
   background:var(--card);color:var(--text);min-width:200px}
 .controls label{display:flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;user-select:none}
 .count{margin-left:auto;color:var(--muted);font-size:13px}
+.dl{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border:1px solid var(--border);
+  border-radius:8px;background:var(--card);color:var(--accent);font-weight:600;font-size:13px;
+  text-decoration:none}
+.dl:hover{border-color:var(--accent)}
 .tablebox{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
 table{border-collapse:collapse;width:100%;min-width:1080px;font-variant-numeric:tabular-nums}
 th,td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
@@ -62,6 +66,7 @@ tr:hover td{background:var(--row-hover)}
     <input type="search" id="q" placeholder="기업명·종목코드 검색">
     <label><input type="checkbox" id="fDebt"> 부채비율 100% 이하만</label>
     <label><input type="checkbox" id="fRisk"> 상폐 리스크 종목만</label>
+    <a class="dl" href="data.xlsx" download="코스닥_시총300억미만.xlsx">⬇ 엑셀 다운로드</a>
     <span class="count" id="count"></span>
   </div>
 
