@@ -75,11 +75,13 @@ def universe_krx():
         if df is not None and not df.empty and int(df["시가총액"].sum()) > 0:
             rows = []
             for t, row in df.iterrows():
+                mcap = row["시가총액"] / EOK
                 rows.append({
                     "code": t,
-                    "name": stock.get_market_ticker_name(t),
+                    # 이름 조회는 느리므로 스크리닝 대상만
+                    "name": stock.get_market_ticker_name(t) if 0 < mcap < MCAP_LIMIT else "",
                     "close": int(row["종가"]),
-                    "mcap": round(row["시가총액"] / EOK, 1),
+                    "mcap": round(mcap, 1),
                 })
             return ymd, rows
         d -= dt.timedelta(days=1)
@@ -94,7 +96,14 @@ def history_krx(code, base_ymd):
     df = stock.get_market_cap(frm, base_ymd, code)
     if df is None or df.empty:
         return [], []
-    return df["종가"].tolist(), [m / EOK for m in df["시가총액"].tolist()]
+    mcaps = [m / EOK for m in df["시가총액"].tolist()]
+    if "종가" in df.columns:
+        closes = df["종가"].tolist()
+    else:
+        # 기간 조회에는 종가 컬럼이 없음 — 시가총액/상장주식수로 복원
+        closes = [(int(m / s) if s else 0)
+                  for m, s in zip(df["시가총액"].tolist(), df["상장주식수"].tolist())]
+    return closes, mcaps
 
 
 # ---------------------------------------------------------------- 시세: 네이버 금융
@@ -314,6 +323,9 @@ def main():
         })
         if i % 25 == 0:
             log(f"  {i}/{len(under)} 처리")
+            # 중간 캐시 저장 — 중단돼도 DART 수집분은 보존
+            with open(CACHE_PATH, "w", encoding="utf-8") as f:
+                json.dump(cache, f, ensure_ascii=False)
 
     with open(CACHE_PATH, "w", encoding="utf-8") as f:
         json.dump(cache, f, ensure_ascii=False)
