@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>코스닥 시총 300억 미만 모니터</title>
+<style>
+:root{
+  --bg:#f7f8fa; --card:#ffffff; --text:#1a1d21; --muted:#6b7280;
+  --border:#e5e7eb; --head:#f0f2f5; --accent:#2563eb;
+  --neg:#dc2626; --pos:#111827; --warn-bg:#fef3c7; --warn-tx:#92400e;
+  --dan-bg:#fee2e2; --dan-tx:#991b1b; --ok-bg:#dcfce7; --ok-tx:#166534;
+  --row-hover:#f3f6fb;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#111418; --card:#1a1f26; --text:#e6e8eb; --muted:#9aa3ad;
+    --border:#2a313a; --head:#20262e; --accent:#60a5fa;
+    --neg:#f87171; --pos:#e6e8eb; --warn-bg:#3c2f10; --warn-tx:#fbbf24;
+    --dan-bg:#3f1d1d; --dan-tx:#f87171; --ok-bg:#14321f; --ok-tx:#4ade80;
+    --row-hover:#20262e;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:14px/1.5 "Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.controls input[type=search]{padding:7px 10px;border:1px solid var(--border);border-radius:8px;
+  background:var(--card);color:var(--text);min-width:200px}
+.controls label{display:flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;user-select:none}
+.count{margin-left:auto;color:var(--muted);font-size:13px}
+.tablebox{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:1080px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+th{background:var(--head);font-weight:600;font-size:12.5px;color:var(--muted);
+  position:sticky;top:0;cursor:pointer;user-select:none}
+th .arr{font-size:10px;color:var(--accent)}
+td.num,th.num{text-align:right}
+td.name{font-weight:600}
+td.name a{color:var(--text);text-decoration:none}
+td.name a:hover{color:var(--accent);text-decoration:underline}
+td .code{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
+tr:hover td{background:var(--row-hover)}
+.neg{color:var(--neg)}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11.5px;font-weight:600;margin-right:4px}
+.b-warn{background:var(--warn-bg);color:var(--warn-tx)}
+.b-dan{background:var(--dan-bg);color:var(--dan-tx)}
+.b-ok{background:var(--ok-bg);color:var(--ok-tx)}
+.note{margin-top:14px;color:var(--muted);font-size:12.5px;line-height:1.7}
+.grp{border-left:2px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>코스닥 시총 300억 미만 모니터</h1>
+  <div class="sub" id="meta">데이터 로딩 중…</div>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="기업명·종목코드 검색">
+    <label><input type="checkbox" id="fDebt"> 부채비율 100% 이하만</label>
+    <label><input type="checkbox" id="fRisk"> 상폐 리스크 종목만</label>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="tablebox">
+    <table id="tbl">
+      <thead><tr id="hdr"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>상장폐지 리스크 배지 기준</b> —
+    <span class="badge b-dan">동전주</span> 종가 1,000원 미만 30거래일 연속(관리종목 요건 충족) ·
+    <span class="badge b-warn">동전주 근접</span> 15거래일 이상 연속 ·
+    <span class="badge b-dan">시총 200억↓</span> 현행 관리종목 기준(200억) 미달 지속 ·
+    <span class="badge b-dan">자본잠식</span> 최근 사업보고서 자본총계 ≤ 0<br>
+    시가총액·주가: KRX(pykrx), 재무: 금융감독원 OpenDART 사업보고서(연결 우선). 매출·영업이익·부채비율 단위: 억 원.
+    SPAC(기업인수목적회사) 제외. 본 자료는 투자 판단의 참고용이며 정확성을 보증하지 않습니다.
+  </div>
+</div>
+
+<script>
+const COLS = [
+  {k:'idx',   t:'번호',        num:true,  sort:null},
+  {k:'name',  t:'기업명',      num:false, sort:(a,b)=>a.name.localeCompare(b.name,'ko')},
+  {k:'close', t:'주가(원)',    num:true,  sort:(a,b)=>a.close-b.close},
+  {k:'mcap',  t:'시총(억)',    num:true,  sort:(a,b)=>a.mcap-b.mcap},
+  {k:'debt',  t:'부채비율(%)', num:true,  sort:(a,b)=>nv(a.debt_ratio)-nv(b.debt_ratio)},
+  {k:'r23',   t:'매출 23',     num:true,  grp:true, sort:(a,b)=>nv(fv(a,'2023','rev'))-nv(fv(b,'2023','rev'))},
+  {k:'r24',   t:'매출 24',     num:true,  sort:(a,b)=>nv(fv(a,'2024','rev'))-nv(fv(b,'2024','rev'))},
+  {k:'r25',   t:'매출 25',     num:true,  sort:(a,b)=>nv(fv(a,'2025','rev'))-nv(fv(b,'2025','rev'))},
+  {k:'o23',   t:'영업이익 23', num:true,  grp:true, sort:(a,b)=>nv(fv(a,'2023','op'))-nv(fv(b,'2023','op'))},
+  {k:'o24',   t:'영업이익 24', num:true,  sort:(a,b)=>nv(fv(a,'2024','op'))-nv(fv(b,'2024','op'))},
+  {k:'o25',   t:'영업이익 25', num:true,  sort:(a,b)=>nv(fv(a,'2025','op'))-nv(fv(b,'2025','op'))},
+  {k:'risk',  t:'리스크',      num:false, grp:true, sort:(a,b)=>riskScore(b)-riskScore(a)},
+];
+const nv = v => (v===null||v===undefined||Number.isNaN(v)) ? -Infinity : v;
+const fv = (c,y,k) => (c.fin && c.fin[y]) ? c.fin[y][k] : null;
+const fmt = v => (v===null||v===undefined) ? '<span style="color:var(--muted)">–</span>'
+  : (v<0 ? `<span class="neg">(${Math.abs(v).toLocaleString()})</span>` : v.toLocaleString());
+
+function riskScore(c){
+  let s=0;
+  if(c.penny_streak>=30) s+=100; else if(c.penny_streak>=15) s+=40;
+  if(c.equity_impaired) s+=100;
+  if(c.under200_streak>=20) s+=60;
+  return s;
+}
+function badges(c){
+  const b=[];
+  if(c.penny_streak>=30) b.push(`<span class="badge b-dan">동전주 ${c.penny_streak}일</span>`);
+  else if(c.penny_streak>=15) b.push(`<span class="badge b-warn">동전주 근접 ${c.penny_streak}일</span>`);
+  if(c.equity_impaired) b.push(`<span class="badge b-dan">자본잠식</span>`);
+  if(c.under200_streak>=20) b.push(`<span class="badge b-dan">시총 200억↓ ${c.under200_streak}일</span>`);
+  return b.length? b.join('') : '<span class="badge b-ok">양호</span>';
+}
+
+let DATA=null, sortKey='mcap', sortAsc=true;
+
+function render(){
+  if(!DATA) return;
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  const fD=document.getElementById('fDebt').checked;
+  const fR=document.getElementById('fRisk').checked;
+  let rows=DATA.companies.filter(c=>{
+    if(q && !(c.name.toLowerCase().includes(q)||c.code.includes(q))) return false;
+    if(fD && !(c.debt_ratio!==null && c.debt_ratio<=100)) return false;
+    if(fR && riskScore(c)===0) return false;
+    return true;
+  });
+  const col=COLS.find(c=>c.k===sortKey);
+  if(col && col.sort){ rows.sort(col.sort); if(!sortAsc) rows.reverse(); }
+
+  document.getElementById('hdr').innerHTML = COLS.map(c=>
+    `<th class="${c.num?'num':''} ${c.grp?'grp':''}" data-k="${c.k}">${c.t}${
+      c.k===sortKey?` <span class="arr">${sortAsc?'▲':'▼'}</span>`:''}</th>`).join('');
+  document.querySelectorAll('#hdr th').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k, c=COLS.find(x=>x.k===k);
+    if(!c.sort) return;
+    if(sortKey===k) sortAsc=!sortAsc; else {sortKey=k; sortAsc=true;}
+    render();
+  });
+
+  document.getElementById('body').innerHTML = rows.map((c,i)=>`<tr>
+    <td class="num" style="color:var(--muted)">${i+1}</td>
+    <td class="name"><a href="https://finance.naver.com/item/main.naver?code=${c.code}" target="_blank" rel="noopener">${c.name}</a><span class="code">${c.code}</span></td>
+    <td class="num">${c.close.toLocaleString()}</td>
+    <td class="num">${c.mcap.toLocaleString()}</td>
+    <td class="num">${fmt(c.debt_ratio)}</td>
+    <td class="num grp">${fmt(fv(c,'2023','rev'))}</td>
+    <td class="num">${fmt(fv(c,'2024','rev'))}</td>
+    <td class="num">${fmt(fv(c,'2025','rev'))}</td>
+    <td class="num grp">${fmt(fv(c,'2023','op'))}</td>
+    <td class="num">${fmt(fv(c,'2024','op'))}</td>
+    <td class="num">${fmt(fv(c,'2025','op'))}</td>
+    <td class="grp">${badges(c)}</td>
+  </tr>`).join('');
+  document.getElementById('count').textContent=`${rows.length} / ${DATA.companies.length}종목`;
+}
+
+fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
+  DATA=d;
+  document.getElementById('meta').textContent =
+    `기준일 ${d.base_date.replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3')} · ${d.updated_kst} KST 업데이트 · 시총 ${d.mcap_limit}억 미만${d.has_dart?'':' · (재무 데이터 없음 — DART 키 미설정)'}`;
+  render();
+}).catch(()=>{ document.getElementById('meta').textContent='data.json을 불러오지 못했습니다.'; });
+
+['q','fDebt','fRisk'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+</script>
+</body>
+</html>
