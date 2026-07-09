@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
-"""주간 AI 투자 후보 추천 — Claude API.
+"""주간 AI 투자 후보 추천 — OpenAI API.
 
-docs/data.json(스크리닝 데이터)을 입력으로 Claude가 PE 관점에서
+docs/data.json(스크리닝 데이터)을 입력으로 AI가 PE 관점에서
 투자(지분매수)·인수(경영권) 후보 5개를 선정하고,
 docs/recommendations.json에 이력을 누적 저장한다.
 
-환경변수: ANTHROPIC_API_KEY (필수)
+환경변수: OPENAI_API_KEY (필수)
 """
 import datetime as dt
 import json
 import os
 import sys
 
-import anthropic
+from openai import OpenAI
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "docs", "data.json")
 REC_PATH = os.path.join(BASE_DIR, "docs", "recommendations.json")
 
-MODEL = "claude-sonnet-5"
+MODEL = "gpt-5.5"
 
 OUTPUT_SCHEMA = {
     "type": "object",
@@ -99,8 +99,8 @@ def build_universe_text(companies):
 
 
 def main():
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("[오류] ANTHROPIC_API_KEY 미설정", file=sys.stderr)
+    if not os.environ.get("OPENAI_API_KEY"):
+        print("[오류] OPENAI_API_KEY 미설정", file=sys.stderr)
         return 1
 
     with open(DATA_PATH, encoding="utf-8") as f:
@@ -126,18 +126,21 @@ def main():
         + prev_note
     )
 
-    client = anthropic.Anthropic()
-    response = client.messages.create(
+    client = OpenAI()
+    response = client.chat.completions.create(
         model=MODEL,
-        max_tokens=16000,
-        thinking={"type": "adaptive"},
-        system=SYSTEM,
-        messages=[{"role": "user", "content": user_msg}],
-        output_config={"format": {"type": "json_schema", "schema": OUTPUT_SCHEMA}},
+        max_completion_tokens=16000,
+        messages=[
+            {"role": "system", "content": SYSTEM},
+            {"role": "user", "content": user_msg},
+        ],
+        response_format={
+            "type": "json_schema",
+            "json_schema": {"name": "picks", "strict": True, "schema": OUTPUT_SCHEMA},
+        },
     )
 
-    text = next(b.text for b in response.content if b.type == "text")
-    result = json.loads(text)
+    result = json.loads(response.choices[0].message.content)
 
     entry = {
         "date": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=9)).strftime("%Y-%m-%d"),
@@ -154,7 +157,7 @@ def main():
     print(f"추천 {len(entry['picks'])}건 저장 (누적 {len(history)}회)")
     for p in entry["picks"]:
         print(f"  [{p['angle']}] {p['name']}({p['code']})")
-    print(f"토큰: in={response.usage.input_tokens} out={response.usage.output_tokens}")
+    print(f"토큰: in={response.usage.prompt_tokens} out={response.usage.completion_tokens}")
     return 0
 
 
