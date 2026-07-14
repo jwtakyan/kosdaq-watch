@@ -331,13 +331,18 @@ def build_xlsx(out):
 # ---------------------------------------------------------------- main
 
 def main():
-    source = "KRX(pykrx)" if USE_KRX else "네이버 금융(fallback)"
-    log(f"시세 소스: {source}")
-
-    if USE_KRX:
-        base_ymd, rows = universe_krx()
-    else:
+    use_krx = USE_KRX
+    if use_krx:
+        try:
+            base_ymd, rows = universe_krx()
+        except Exception as e:
+            # KRX는 해외 IP(GitHub Actions 등)에서 로그인이 차단될 수 있음
+            log(f"[경고] KRX 조회 실패 — 네이버 금융으로 전환: {e}")
+            use_krx = False
+    if not use_krx:
         base_ymd, rows = universe_naver()
+    source = "KRX(pykrx)" if use_krx else "네이버 금융"
+    log(f"시세 소스: {source}")
     log(f"코스닥 {len(rows)}종목 수집")
 
     # 보통주만(종목코드 끝자리 0) — 우선주 제외, SPAC('기업인수목적'/'스팩') 제외
@@ -376,7 +381,7 @@ def main():
     for i, r in enumerate(under, 1):
         code = r["code"]
         try:
-            if USE_KRX:
+            if use_krx:
                 closes, mcaps = history_krx(code, base_ymd)
             else:
                 closes, mcaps, last_ymd = history_naver(code, r["close"], r["mcap"])
