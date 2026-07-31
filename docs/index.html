@@ -153,6 +153,7 @@ td.sector{font-size:12.5px;color:var(--muted);max-width:120px;overflow:hidden;te
     <input type="search" id="q" placeholder="기업명 검색">
     <label><input type="checkbox" id="fDebt" checked> 부채비율 100% 이하만</label>
     <label><input type="checkbox" id="fRisk" checked> 상폐 리스크 종목만</label>
+    <label><input type="checkbox" id="fBiz"> 화장품/어패럴만</label>
     <a class="dl" href="data.xlsx" download="코스닥_시총300억미만.xlsx">⬇ 엑셀 다운로드</a>
     <span class="count" id="count"></span>
   </div>
@@ -260,10 +261,13 @@ function render(){
   const q=document.getElementById('q').value.trim().toLowerCase();
   const fD=document.getElementById('fDebt').checked;
   const fR=document.getElementById('fRisk').checked;
+  const fB=document.getElementById('fBiz').checked;
+  const BIZ_RE=/화장품|의류|패션|어패럴|섬유|신발|잡화|뷰티|주얼리|핸드백/;
   let rows=DATA.companies.filter(c=>{
     if(q && !(c.name.toLowerCase().includes(q)||c.code.includes(q))) return false;
     if(fD && !(c.debt_ratio!==null && c.debt_ratio<=100)) return false;
     if(fR && riskScore(c)===0) return false;
+    if(fB && !BIZ_RE.test((c.sector||'')+' '+(c.biz||''))) return false;
     return true;
   });
   if(SORTS[sortKey]){ rows.sort(SORTS[sortKey]); if(!sortAsc) rows.reverse(); }
@@ -311,7 +315,7 @@ fetch('data.json?'+Date.now()).then(r=>r.json()).then(d=>{
   render();
 }).catch(()=>{ document.getElementById('meta').textContent='data.json을 불러오지 못했습니다.'; });
 
-['q','fDebt','fRisk'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+['q','fDebt','fRisk','fBiz'].forEach(id=>document.getElementById(id).addEventListener('input',render));
 
 // AI 주간 추천 (recommendations.json 있을 때만 표시)
 fetch('recommendations.json?'+Date.now()).then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(hist=>{
